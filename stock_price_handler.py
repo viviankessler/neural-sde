@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 FORMATS = ["%d-%B-%Y", "%Y-%m-%d"]
 
 
-def load_stock_prices(path="nestle.csv"):
-    stock_prices = pd.read_csv(path)[["Date", "Close Price"]]
-    if "apple" not in path:
+def load_stock_prices(stock_name="nestle"):
+    stock_prices = pd.read_csv("data/" + stock_name + ".csv")[["Date", "Close Price"]]
+    if stock_name != "apple":
         stock_prices = stock_prices.iloc[::-1]
     stock_prices = stock_prices.set_index("Date")
     return stock_prices

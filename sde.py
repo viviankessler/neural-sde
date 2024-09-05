@@ -8,18 +8,25 @@ class SDE(torch.nn.Module):
     state_size = 1
     brownian_size = 1
 
-    def __init__(self, sample_size):
+    def __init__(self, sample_size, times):
         super().__init__()
         self.sample_size = sample_size
+        self.times = times
     
-    def solution(self, initial_states, times):
+    def forward(self, initial_states):
+        sample_paths = torchsde.sdeint(self, initial_states, self.times)
+        terminal_states = sample_paths[-1]
+        return torch.log(terminal_states / initial_states)
+    
+    def solution(self, initial_states):
         """
         Parameters:
             initial_states: of shape (sample_size, state_size)
             times: 1-dimensional tensor
         """
         with torch.no_grad():
-            return torchsde.sdeint(self, initial_states, times)
+            initial_states = torch.tensor(initial_states)
+            return torchsde.sdeint(self, initial_states, self.times).numpy().squeeze()
 
 
 class BlackScholes(SDE):
