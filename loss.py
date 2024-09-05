@@ -1,16 +1,17 @@
 import torch
 
 
-def kth_moment(k):
-    def moment(array):
-        array_to_k = torch.pow(array, k)
-        expected_to_k = torch.mean(array_to_k)
-        return torch.pow(expected_to_k, 1/k)
-    return moment
+def sigmoid(x):
+    return 1 / (1 + torch.exp(- 10 * x))
 
 
-def moment_matching_loss(actual_distribution, estimated_distribution):
+def cdf(alpha, array):
+    return 100 / len(array) * sigmoid(array - alpha).sum()
+
+
+def kl_divergence(estimated_distribution, actual_distribution):
     loss = 0
-    for k in range(1, 5):
-        loss += torch.square(kth_moment(k)(actual_distribution) - kth_moment(k)(estimated_distribution))
+    for step in torch.linspace(torch.min(actual_distribution), torch.max(actual_distribution), 500):
+        loss += torch.square(cdf(step, actual_distribution) - cdf(step, estimated_distribution))
     return loss
+
