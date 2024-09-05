@@ -2,10 +2,13 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
+FORMATS = ["%d-%B-%Y", "%Y-%m-%d"]
+
 
 def load_stock_prices(path="nestle.csv"):
     stock_prices = pd.read_csv(path)[["Date", "Close Price"]]
-    stock_prices = stock_prices.iloc[::-1]
+    if "apple" not in path:
+        stock_prices = stock_prices.iloc[::-1]
     stock_prices = stock_prices.set_index("Date")
     return stock_prices
 
@@ -14,7 +17,14 @@ def get_log_returns(stock_prices, t=5):
     
     date_to_price = {}
     for datestr, price in stock_prices["Close Price"].items():
-        date_to_price[datetime.strptime(datestr, "%d-%B-%Y").date()] = price
+        for format in FORMATS:
+            try:
+                date = datetime.strptime(datestr, format)
+                if date > datetime(2010, 1, 1):
+                    date_to_price[date.date()] = price
+                break
+            except ValueError:
+                continue
     
     log_returns = []
     for date in date_to_price:
