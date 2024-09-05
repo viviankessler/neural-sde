@@ -26,10 +26,11 @@ def get_log_returns(stock_prices, t=5):
             except ValueError:
                 continue
     
-    log_returns = []
+    log_returns, inital_prices = [], []
     for date in date_to_price:
         if date + timedelta(days=t) in date_to_price:
             log_return = np.log(date_to_price[date + timedelta(days=t)] / date_to_price[date])
             log_returns.append(log_return)
+            inital_prices.append(date_to_price[date])
     
-    return log_returns
+    return log_returns, inital_prices
