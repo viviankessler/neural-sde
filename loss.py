@@ -2,7 +2,7 @@ import torch
 
 
 def sigmoid(x):
-    return 1 / (1 + torch.exp(- 100 * x))
+    return 1 / (1 + torch.exp(- 10 * x))
 
 
 def cdf(alpha, array):
