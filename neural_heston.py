@@ -12,12 +12,12 @@ class Heston(torch.nn.Module):
         super().__init__()
         if eta < 0:
             raise AssertionError("eta must be positive")
-        self.r = torch.nn.Parameter(torch.tensor(r))
-        self.q = torch.nn.Parameter(torch.tensor(q))
+        self.r = torch.nn.Parameter(torch.tensor(r), requires_grad=False)
+        self.q = torch.nn.Parameter(torch.tensor(q), requires_grad=False)
         self.eta = torch.nn.Parameter(torch.tensor(eta))
         self.theta = torch.nn.Parameter(torch.tensor(theta))
         self.xi = torch.nn.Parameter(torch.tensor(xi))
-        self.rho = torch.nn.Parameter(torch.tensor(rho))  # TODO
+        self.rho = torch.nn.Parameter(torch.tensor(rho), requires_grad=False)  # TODO
 
     def f(self, t, y):
         y = torch.maximum(1e-9 * torch.ones_like(y), y)
@@ -35,8 +35,7 @@ class Heston(torch.nn.Module):
         return torch.stack([diffusion_S, diffusion_nu], dim=-1)
     
     def predict(self, trajectory, num_simulations, dt):
-        with torch.no_grad():
-            times = torch.tensor(trajectory["t"], requires_grad=False)
-            initial_states = torch.tensor(trajectory[["S", "ν"]].iloc[0], requires_grad=False).repeat(num_simulations, 1)
-            solution = torchsde.sdeint(self, initial_states, times, dt=dt, method="euler")
-            return solution
+        times = torch.tensor(trajectory["t"], requires_grad=False)
+        initial_states = torch.tensor(trajectory[["S", "ν"]].iloc[0], requires_grad=False).repeat(num_simulations, 1)
+        solution = torchsde.sdeint(self, initial_states, times, dt=dt, method="euler")
+        return solution

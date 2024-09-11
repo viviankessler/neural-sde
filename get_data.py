@@ -1,5 +1,29 @@
 import yfinance as yf
 import pandas as pd
+from datetime import date
+import random
+
+INTERVAL = "1d"
+LOCAL_VOL_WINDOW_SIZE = 5
+
+
+def get_train_test_data(stock_name, train_start, test_start, prediction_period, train_size=1000, test_size=10):
+    
+    observed_process = get_observed_process(stock_name, train_start, date.today(), interval=INTERVAL, local_vol_window_size=LOCAL_VOL_WINDOW_SIZE)
+    
+    test_part = observed_process[observed_process.index.to_pydatetime() >= test_start]
+    train_part = observed_process[observed_process.index.to_pydatetime() < test_start]
+
+    train_data, test_data = [*get_windows(train_part, prediction_period)], [*get_windows(test_part, prediction_period)]
+
+    return random.sample(train_data, train_size), random.sample(test_data, test_size)
+
+
+def get_windows(df, prediction_period):
+    for i in range(0, df.shape[0] - prediction_period):
+        window = df.iloc[i : i + prediction_period]
+        if window.shape[0] == prediction_period:
+            yield window
 
 
 def get_observed_process(stock_name, start, end, interval, local_vol_window_size):
