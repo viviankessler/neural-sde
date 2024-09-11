@@ -1,7 +1,6 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from datetime import timedelta, date
 import torch
 import torchsde
 import matplotlib.pyplot as plt
@@ -27,9 +26,9 @@ def simulate(
     initial_states = torch.tensor(observed_process[["S", "ν"]].iloc[0], requires_grad=False).repeat(num_simulations, 1)
     if parameters == "infer":
         parameters = infer_heston_parameters(observed_process)
-    r = get_r(start, end)
+        parameters.update({"r": get_r(observed_process.index[0].date(), observed_process.index[-1].date())})
         
-    sde = Heston(r=r, **parameters)
+    sde = Heston(**parameters)
     solution = torchsde.sdeint(sde, initial_states, times, method="euler", dt=dt)
 
     if plot:
@@ -49,12 +48,9 @@ def get_r(start, end):
 def plot_simulation(simulation, observed_process, title):
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
-    """for i, trajectory in enumerate(simulation[:, :20, 1].transpose(0, 1)):
-        ax2.scatter(observed_process.index, trajectory, c="navy", alpha=.2, label="simulation ($\\nu$)" if i == 0 else None)"""
     for i, trajectory in enumerate(simulation[..., 0].transpose(0, 1)):
         ax1.plot(observed_process.index, trajectory, c="red", alpha=.5, label="simulation ($S$)" if i == 0 else None)
     ax1.plot(observed_process.index, list(observed_process["S"]), c="purple", linewidth=3, label="market data ($S$)")
-    # ax2.scatter(observed_process.index, list(observed_process["ν"]), c="blue", linewidth=3, label="market data ($\\nu$)", marker="x", alpha=.2)
     ax1.legend(), ax1.set_ylabel("$S$", color="red")
     ax2.legend(), ax2.set_ylabel("$\\nu$", color="grey")
     plt.title(title)
