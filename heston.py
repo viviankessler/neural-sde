@@ -10,30 +10,40 @@ MODE = "close"
 
 
 def simulate(
-        stock_name,
         num_simulations=10,
-        start=date.today() - timedelta(days=1),
-        end=date.today(),
-        interval="1m",
-        local_vol_window_size=15,
-        dt=1 if MODE == "close" else 60,
-        plot=False,
-        title="",
+        observed_process=None,
         parameters="infer",
+        dt=1 if MODE == "close" else 60,
+        stock_name=None,
+        start=None,
+        end=None,
+        interval=None,
+        local_vol_window_size=None,
+        plot=False,
         ):
-    
-    observed_process = get_observed_process(stock_name, start, end, interval, local_vol_window_size)
+    if observed_process is None:
+        observed_process = get_observed_process(stock_name, start, end, interval, local_vol_window_size)
     times = torch.tensor(observed_process["t"], requires_grad=False)
     initial_states = torch.tensor(observed_process[["S", "ν"]].iloc[0], requires_grad=False).repeat(num_simulations, 1)
     if parameters == "infer":
         parameters = infer_heston_parameters(observed_process)
-    sde = Heston(**parameters)
+    r = get_r(start, end)
+        
+    sde = Heston(r=r, **parameters)
     solution = torchsde.sdeint(sde, initial_states, times, method="euler", dt=dt)
 
     if plot:
-        plot_simulation(solution, observed_process, title)
+        format_parameter = "; ".join([f"$\\{p}$: {parameters[p]:2g}; " for p in parameters])
+        plot_simulation(solution, observed_process, title=f"{stock_name}: {observed_process.index[0].date()} - {observed_process.index[-1].date()}\n{format_parameter}")
 
     return solution, parameters, observed_process
+
+
+def get_r(start, end):
+    treasury_data = yf.download("CSBGC3.SW", start=start, end=end)["Close"]
+    observation_times = get_t(treasury_data)
+    time_deltas = get_time_deltas(observation_times, treasury_data)
+    return (treasury_data.diff() / treasury_data / time_deltas).mean()
 
 
 def plot_simulation(simulation, observed_process, title):
@@ -85,12 +95,11 @@ class Heston(torch.nn.Module):
 
 
 def infer_heston_parameters(observed_process):
-    r = (observed_process["S"].diff() / observed_process["S"] / observed_process["time_deltas"]).mean()
     theta = observed_process["ν"].mean()
     local_volatility_deltas = observed_process["ν"].diff()
     eta = get_eta(local_volatility_deltas, observed_process, theta)
     xi = (local_volatility_deltas / np.sqrt(observed_process["ν"] * observed_process["time_deltas"])).std()
-    return dict(r=r, theta=theta, eta=eta, xi=xi)
+    return dict(theta=theta, eta=eta, xi=xi)
 
 
 def get_eta(local_volatility_deltas, observed_process, theta):
