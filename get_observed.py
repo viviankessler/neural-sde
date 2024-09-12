@@ -64,4 +64,4 @@ def get_rates(price_deltas, observed_prices, time_deltas, local_window_size):
 def get_nu(risk_free_rates, price_deltas, observed_prices, time_deltas, local_window_size):
     numerator = price_deltas - risk_free_rates * observed_prices * time_deltas
     denominator = observed_prices * np.sqrt(time_deltas)
-    return (numerator / denominator).rolling(local_window_size).var()
+    return (numerator / denominator).rolling(local_window_size).var() / local_window_size
