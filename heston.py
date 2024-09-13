@@ -49,7 +49,7 @@ class Heston(torch.nn.Module):
 
 def infer_heston_parameters(observed_process):
     r = get_r(observed_process["r"])
-    theta = observed_process["theta"].mean()
+    theta = get_theta(observed_process["ν"])
     eta = get_eta(theta, observed_process["_loc_vol_deltas"], observed_process["ν"], observed_process["_time_deltas"])
     xi = get_xi(theta, eta, observed_process["_loc_vol_deltas"], observed_process["_time_deltas"], observed_process["ν"])
     return dict(r=r, theta=theta, eta=eta, xi=xi)
@@ -57,6 +57,10 @@ def infer_heston_parameters(observed_process):
 
 def get_r(rates):
     return rates.mean()
+
+
+def get_theta(local_volatilities):
+    return local_volatilities.mean()
 
 
 def get_eta(theta, loc_vol_deltas, local_volatilities, time_deltas):

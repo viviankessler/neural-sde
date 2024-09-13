@@ -4,11 +4,17 @@ import numpy as np
 import random
 
 
-
-def get_samples(stock_name, start, end, prediction_period, interval, local_window_size, sample_size):
-    observed_process = get_observed_process(stock_name, start, end, interval=interval, local_window_size=local_window_size)
-    windows = [*get_windows(observed_process, prediction_period)]
-    return random.sample(windows, sample_size)
+def get_samples(stock_names, start, end, prediction_period, interval, local_window_size, sample_size):
+    samples = {}
+    for stock_name in stock_names:
+        observed_process = get_observed_process(stock_name, start, end, interval=interval, local_window_size=local_window_size)
+        windows = [*get_windows(observed_process, prediction_period)]
+        sample = random.sample(windows, sample_size // len(stock_names))
+        for trajectory in sample:
+            samples.update({f"{stock_name}: {trajectory.index[0].date()} until {trajectory.index[-1].date()}": trajectory})
+    keys = list(samples.keys())
+    random.shuffle(keys)
+    return {k: samples[k] for k in keys}
 
 
 def get_windows(df, prediction_period):
@@ -33,7 +39,6 @@ def get_observed_process(stock_name, start, end, interval, local_window_size):
         "r": risk_free_rates,
         "S": observed_prices,
         "ν": local_volatilities,
-        "theta": local_volatilities.rolling(10 * local_window_size, min_periods=local_window_size).mean(),
         "_time_deltas": time_deltas,
         "_price_deltas": price_deltas,
         "_loc_vol_deltas": local_volatility_deltas,
