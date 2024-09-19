@@ -14,6 +14,9 @@ class GeometricBrownianMotion(torch.nn.Module):
         self.sigma = torch.tensor(sigma)
         self.lambdas = torch.tensor(lambdas)
         self.brownian_size = len(self.mu)
+
+        for i in range(self.brownian_size):
+            assert np.allclose(torch.square(self.lambdas[i]).sum(), 1.0), torch.square(self.lambdas[i]).sum()
     
     def f(self, t, y):
         return self.mu * y
