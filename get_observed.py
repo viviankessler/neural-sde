@@ -4,24 +4,26 @@ import numpy as np
 import random
 
 
-def get_samples(stock_names, start, end, prediction_period, interval, local_window_size, sample_size):
-    samples = {}
-    for stock_name in stock_names:
-        observed_process = get_observed_process(stock_name, start, end, interval=interval, local_window_size=local_window_size)
-        windows = [*get_windows(observed_process, prediction_period)]
-        sample = random.sample(windows, sample_size // len(stock_names))
-        for trajectory in sample:
-            samples.update({f"{stock_name}: {trajectory.index[0].date()} until {trajectory.index[-1].date()}": trajectory})
-    keys = list(samples.keys())
-    random.shuffle(keys)
-    return {k: samples[k] for k in keys}
+def get_samples(stock_names, num_samples, start, end, interval, local_window_size, prediction_period):
+    observed_processes = [get_observed_process(stock_name, start, end, interval, local_window_size) for stock_name in stock_names]
+    windows = [*get_windows(observed_processes, prediction_period)]
+    return random.sample(windows, num_samples)
 
 
-def get_windows(df, prediction_period):
-    for i in range(0, df.shape[0] - prediction_period):
-        window = df.iloc[i : i + prediction_period]
-        if window.shape[0] == prediction_period:
-            yield window
+def get_windows(observed_processes, prediction_period):
+    for i in range(0, observed_processes[0].shape[0] - prediction_period):
+        windows = []
+        for observed_process in observed_processes:
+            if len(windows) == 0:
+                window = observed_process.iloc[i : i + prediction_period]
+            else:
+                index = windows[0].index
+                window = observed_process.loc[index].dropna()
+            if window.shape[0] == prediction_period:
+                windows.append(window)
+        shapes = set(w.shape for w in windows)
+        assert len(shapes) == 1, shapes
+        yield windows
 
 
 def get_observed_process(stock_name, start, end, interval, local_window_size):
@@ -59,14 +61,14 @@ def get_t(observed_prices):
 
 
 def get_deltas(array):
-    return array.diff().shift(periods=-1)
+    return array.diff()
 
 
 def get_rates(price_deltas, observed_prices, time_deltas, local_window_size):
-    return (price_deltas / observed_prices / time_deltas).rolling(local_window_size).mean()
+    return (price_deltas / observed_prices.shift(periods=1) / time_deltas).rolling(local_window_size).mean()
 
 
 def get_nu(risk_free_rates, price_deltas, observed_prices, time_deltas, local_window_size):
-    numerator = price_deltas - risk_free_rates * observed_prices * time_deltas
+    numerator = price_deltas - risk_free_rates * observed_prices.shift(periods=1) * time_deltas
     denominator = observed_prices * np.sqrt(time_deltas)
     return (numerator / denominator).rolling(local_window_size).var() / local_window_size
