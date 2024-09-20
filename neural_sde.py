@@ -1,3 +1,5 @@
+"""Neural SDEs."""
+
 import numpy as np
 import torch
 import torchsde

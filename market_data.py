@@ -1,3 +1,5 @@
+"""Retrieve real-world stock prices."""
+
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -5,7 +7,10 @@ import random
 
 
 def get_samples(stock_names, num_samples, start, end, interval, local_window_size, prediction_period):
-    observed_processes = [get_observed_process(stock_name, start, end, interval, local_window_size) for stock_name in stock_names]
+    observed_processes = [
+        get_observed_process(stock_name, start, end, interval, local_window_size)
+        for stock_name in stock_names
+        ]
     windows = [*get_windows(observed_processes, prediction_period)]
     return random.sample(windows, num_samples)
 
